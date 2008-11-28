@@ -82,7 +82,7 @@ def layout(**kwargs):
     
     """
     options = ' '.join(['='.join(filter(None,i)) for i in kwargs.items()])
-    local(r'grep %s \\\(^#\ .*:$\\\)\\\|.*def\ .* fabric.py|' % options
+    local(r'grep %s \\\(^#\ .*:$\\\)\\\|.*def\ .* fabric/core.py|' % options
             + 'perl -p -e "s/def /   def /"')
 
 def test():

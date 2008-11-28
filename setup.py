@@ -21,7 +21,7 @@ bound to any specific framework.
     author_email = 'karmazilla@gmail.com',
     url = 'http://www.nongnu.org/fab/',
     install_requires = ['paramiko >=1.6, <2.0'],
-    py_modules = ['fabric'],
+    packages = ['fabric'],
     entry_points = {
         'console_scripts': [
             'fab = fabric:main',
