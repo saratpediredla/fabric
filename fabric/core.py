@@ -34,6 +34,7 @@ from collections import deque
 from functools import wraps
 
 from interop import get_username, partition, get_home_directory
+from util import *
 
 # Paramiko
 try:
@@ -257,7 +258,7 @@ def require(*varnames, **kwargs):
         ("The '%(fab_cur_command)s' command requires " + vars_msg) % ENV
     )
     if 'used_for' in kwargs:
-        print("This variable is used for %s" % _lazy_format(
+        print("This variable is used for %s" % lazy_format(
             kwargs['used_for']))
     if 'provided_by' in kwargs:
         print("Get the variable by running one of these commands:")
@@ -312,7 +313,7 @@ def prompt(varname, msg, validate=None, default=None):
     
     try:
         default_str = default and (" [%s]" % str(default).strip()) or ""
-        prompt_msg = _lazy_format("%s%s: " % (msg.strip(), default_str))
+        prompt_msg = lazy_format("%s%s: " % (msg.strip(), default_str))
         
         while True:
             value = value or raw_input(prompt_msg) or default
@@ -353,8 +354,8 @@ def put(host, client, env, localpath, remotepath, **kwargs):
         put('bin/project.zip', '/tmp/project.zip')
     
     """
-    localpath = _lazy_format(localpath, env)
-    remotepath = _lazy_format(remotepath, env)
+    localpath = lazy_format(localpath, env)
+    remotepath = lazy_format(remotepath, env)
     if not os.path.exists(localpath):
         return False
     ftp = client.open_sftp()
@@ -390,8 +391,8 @@ def download(host, client, env, remotepath, localpath, **kwargs):
     
     """
     ftp = client.open_sftp()
-    localpath = _lazy_format(localpath) + '.' + host
-    remotepath = _lazy_format(remotepath)
+    localpath = lazy_format(localpath) + '.' + host
+    remotepath = lazy_format(remotepath)
     print("[%s] download: %s <- %s" % (host, localpath, remotepath))
     ftp.get(remotepath, localpath)
     return True
@@ -416,7 +417,7 @@ def run(host, client, env, cmd, **kwargs):
         run("ls")
     
     """
-    cmd = _lazy_format(cmd, env)
+    cmd = lazy_format(cmd, env)
     real_cmd = env['fab_shell'] + ' "' + cmd.replace('"', '\\"') + '"'
     real_cmd = _escape_bash_specialchars(real_cmd)
     if not _confirm_proceed('run', host, kwargs):
@@ -460,9 +461,9 @@ def sudo(host, client, env, cmd, **kwargs):
         sudo("httpd restart", user='apache')
     
     """
-    cmd = _lazy_format(cmd, env)
+    cmd = lazy_format(cmd, env)
     if "user" in kwargs:
-        user = _lazy_format(kwargs['user'], env)
+        user = lazy_format(kwargs['user'], env)
         sudo_cmd = "sudo -S -p '%s' -u " + user + " "
     else:
         sudo_cmd = "sudo -S -p '%s' "
@@ -506,7 +507,7 @@ def local(cmd, **kwargs):
     
     """
     # we don't need _escape_bash_specialchars for local execution
-    final_cmd = _lazy_format(cmd)
+    final_cmd = lazy_format(cmd)
     print("[localhost] run: " + final_cmd)
     retcode = subprocess.call(final_cmd, shell=True)
     if retcode != 0:
@@ -540,8 +541,8 @@ def local_per_host(cmd, **kwargs):
             env['fab_host'] = hostname
             con_envs.append(env)
     for env in con_envs:
-        final_cmd = _lazy_format(cmd, env)
-        print(_lazy_format("[localhost/$(fab_host)] run: " + final_cmd, env))
+        final_cmd = lazy_format(cmd, env)
+        print(lazy_format("[localhost/$(fab_host)] run: " + final_cmd, env))
         retcode = subprocess.call(final_cmd, shell=True)
         if retcode != 0:
             _fail(kwargs, "Local command failed:\n" + _indent(final_cmd))
@@ -614,7 +615,7 @@ def upload_project(**kwargs):
 @operation
 def abort(msg):
     "Simple way for users to have their commands abort the process."
-    print(_lazy_format('[$(fab_host)] Error: %s' % msg, ENV))
+    print(lazy_format('[$(fab_host)] Error: %s' % msg, ENV))
     sys.exit(1)
 
 @operation
@@ -891,7 +892,7 @@ class HostConnection(object):
             password = None
             while not connected:
                 try:
-                    password = getpass.getpass(_lazy_format(PASS_PROMPT, env))
+                    password = getpass.getpass(lazy_format(PASS_PROMPT, env))
                     env['fab_password'] = password
                     self._do_connect(client, env)
                     connected = True
@@ -1009,7 +1010,7 @@ def _connect():
     for user, host_connections in host_connections_by_user.iteritems():
         user_env = dict(ENV)
         user_env.update(user_envs[user])
-        print(_lazy_format("Logging into the following hosts as $(fab_user):",
+        print(lazy_format("Logging into the following hosts as $(fab_user):",
             user_env))
         for conn in host_connections:
             print(_indent(str(conn)))
@@ -1022,24 +1023,6 @@ def _disconnect():
     global CONNECTIONS
     map(HostConnection.disconnect, CONNECTIONS)
     CONNECTIONS = []
-
-_LAZY_FORMAT_SUBSTITUTER = re.compile(r'(\\?)(\$\((?P<var>[\w-]+?)\))')
-def _lazy_format(string, env=ENV):
-    "Do recursive string substitution of ENV vars - both lazy and eager."
-    if string is None:
-        return None
-    env = dict([(k, str(v)) for k, v in env.items()])
-    string = string.replace('%', '%%')
-    def replacer_fn(match):
-        escape = match.group(1)
-        if escape == '\\':
-            return match.group(2)
-        var = match.group('var')
-        if var in env:
-            return escape + _lazy_format(env[var] % env, env)
-        else:
-            return match.group(0)
-    return re.sub(_LAZY_FORMAT_SUBSTITUTER, replacer_fn, string % env)
 
 def _try_run_operation(fn, host, client, env, *args, **kwargs):
     """
@@ -1068,7 +1051,7 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
 
 def _confirm_proceed(exec_type, host, kwargs):
     if 'confirm' in kwargs:
-        infotuple = (exec_type, host, _lazy_format(kwargs['confirm']))
+        infotuple = (exec_type, host, lazy_format(kwargs['confirm']))
         question = "Confirm %s for host %s: %s [yN] " % infotuple
         answer = raw_input(question)
         return answer and answer in 'yY'
@@ -1086,7 +1069,7 @@ def _fail(kwargs, msg, env=ENV):
         code, msg_prefix = codes[kwargs['fail']]
     # If warn or above, print message
     if code > 1:
-        print(msg_prefix + _lazy_format(msg, env))
+        print(msg_prefix + lazy_format(msg, env))
         # If abort, also exit
         if code > 2:
             sys.exit(1)
@@ -1127,13 +1110,13 @@ def _start_outputter(prefix, chan, env, stderr=False, capture=None):
                         # Get pass, and make sure we communicate it back to the
                         # global ENV since that was obviously empty.
                         ENV['fab_password'] = env['fab_password'] = \
-                            getpass.getpass(_lazy_format(PASS_PROMPT, env))
+                            getpass.getpass(lazy_format(PASS_PROMPT, env))
                     # Re-prompt -- whatever we supplied last time (the
                     # current value of env['fab_password']) was incorrect.
                     # Don't overwrite ENV because it might not be empty.
                     if again_prompt:
                         env['fab_password'] = \
-                            getpass.getpass(_lazy_format(PASS_PROMPT, env))
+                            getpass.getpass(lazy_format(PASS_PROMPT, env))
                     # Either way, we have a password now, so send it.
                     chan.sendall(env['fab_password']+'\n')
                     out = ""
@@ -1215,9 +1198,9 @@ def _execute_command(cmd, args, kwargs, skip_executed=False):
     # Setup
     command = COMMANDS[cmd]
     if args is not None:
-        args = map(_lazy_format, args)
+        args = map(lazy_format, args)
     if kwargs is not None:
-        kwargs = dict(zip(kwargs.keys(), map(_lazy_format, kwargs.values())))
+        kwargs = dict(zip(kwargs.keys(), map(lazy_format, kwargs.values())))
     # Remember executed commands. Don't run them again if skip_executed.
     if skip_executed and _has_executed(command, args, kwargs):
         args_msg = (args or kwargs) and (" with %r, %r" % (args, kwargs)) or ""
@@ -1262,7 +1245,7 @@ def _execute_at_target(command, args, kwargs):
         command, 'hosts', ENV.get('fab_hosts') or []))
     roles = getattr(command, 'roles', [])
     for role in roles:
-        role = _lazy_format(role)
+        role = lazy_format(role)
         role_hosts = ENV.get(role)
         map(hosts.add, role_hosts)
     if mode in ('rolling', 'fanout'):
