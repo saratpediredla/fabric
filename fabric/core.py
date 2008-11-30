@@ -33,6 +33,8 @@ import types
 from collections import deque
 from functools import wraps
 
+from interop import get_username, partition, get_home_directory
+
 # Paramiko
 try:
     import paramiko as ssh
@@ -40,18 +42,6 @@ except ImportError:
     print("Error: paramiko is a required module. Please install it:")
     print("  $ sudo easy_install paramiko")
     sys.exit(1)
-
-# Win32 compat
-win32 = sys.platform in ['win32', 'cygwin']
-
-if not win32:
-    import pwd
-    _username = pwd.getpwuid(os.getuid())[0]
-else:
-    import win32api
-    import win32security
-    import win32profile
-    _username = win32api.GetUserName()
 
 __version__ = '0.0.9'
 __author__ = 'Christian Vest Hansen'
@@ -71,7 +61,7 @@ DEFAULT_ENV = {
     'fab_mode': 'broad',
     'fab_submode': 'serial',
     'fab_port': 22,
-    'fab_user': _username,
+    'fab_user': get_username(),
     'fab_password': None,
     'fab_sudo_prompt': 'sudo password:',
     'fab_pkey': None,
@@ -121,19 +111,6 @@ def _new_namespace():
 
 _LOADED_FABFILES = set()
 _EXECUTED_COMMANDS = set()
-
-#
-# Compatibility fixes
-#
-if hasattr(str, 'partition'):
-    partition = str.partition
-else:
-    def partition(txt, sep):
-        idx = txt.find(sep)
-        if idx == -1:
-            return txt, '', ''
-        else:
-            return (txt[:idx], sep, txt[idx + len(sep):])
 
 #
 # Helper decorators for use in Fabric itself:
@@ -1196,12 +1173,7 @@ def _pick_fabfile():
 
 def _load_default_settings():
     "Load user-default fabric settings from ~/.fabric"
-    if not win32:
-        cfg = os.path.expanduser("~/.fabric")
-    else:
-        from win32com.shell.shell import SHGetSpecialFolderPath
-        from win32com.shell.shellcon import CSIDL_PROFILE
-        cfg = SHGetSpecialFolderPath(0,CSIDL_PROFILE) + "/.fabric"
+    cfg = get_home_directory() + "/.fabric"
     if os.path.exists(cfg):
         comments = lambda s: s and not s.startswith("#")
         settings = filter(comments, open(cfg, 'r'))
