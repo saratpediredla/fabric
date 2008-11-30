@@ -511,7 +511,7 @@ def local(cmd, **kwargs):
     print("[localhost] run: " + final_cmd)
     retcode = subprocess.call(final_cmd, shell=True)
     if retcode != 0:
-        _fail(kwargs, "Local command failed:\n" + _indent(final_cmd))
+        _fail(kwargs, "Local command failed:\n" + indent(final_cmd))
 
 @operation
 def local_per_host(cmd, **kwargs):
@@ -545,7 +545,7 @@ def local_per_host(cmd, **kwargs):
         print(lazy_format("[localhost/$(fab_host)] run: " + final_cmd, env))
         retcode = subprocess.call(final_cmd, shell=True)
         if retcode != 0:
-            _fail(kwargs, "Local command failed:\n" + _indent(final_cmd))
+            _fail(kwargs, "Local command failed:\n" + indent(final_cmd))
 
 @operation
 def load(filename, **kwargs):
@@ -570,7 +570,7 @@ def load(filename, **kwargs):
     
     """
     if not os.path.exists(filename):
-        _fail(kwargs, "Load failed:\n" + _indent(
+        _fail(kwargs, "Load failed:\n" + indent(
             "File not found: " + filename))
         return
     
@@ -720,7 +720,7 @@ def _list_commands(**kwargs):
             else:
                 print("Don't know how to list '%s'." % k)
                 print("Try one of these instead:")
-                print(_indent('\n'.join([
+                print(indent('\n'.join([
                     'cmds', 'commands',
                     'ops', 'operations',
                     'dec', 'decorators',
@@ -928,10 +928,6 @@ class HostConnection(object):
     def __str__(self):
         return self.host_local_env['fab_host']
 
-def _indent(text, level=4):
-    "Indent all lines in text with 'level' number of spaces, default 4."
-    return '\n'.join(((' ' * level) + line for line in text.splitlines()))
-
 def _print_help_for(name, doc):
     "Output a pretty-printed help text for the given name & doc"
     default_help_msg = '* No help-text found.'
@@ -946,7 +942,7 @@ def _print_help_for(name, doc):
     if lines:
         msg = '\n'.join(lines)
         if not msg.startswith('    '):
-            msg = _indent(msg)
+            msg = indent(msg)
         print("Help for '%s':\n%s" % (name, msg))
     else:
         print("No help message found for '%s'." % name)
@@ -1013,7 +1009,7 @@ def _connect():
         print(lazy_format("Logging into the following hosts as $(fab_user):",
             user_env))
         for conn in host_connections:
-            print(_indent(str(conn)))
+            print(indent(str(conn)))
         for conn in host_connections:
             conn.connect()
         CONNECTIONS += host_connections
@@ -1036,7 +1032,7 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
     except SystemExit:
         raise
     except BaseException, e:
-        _fail(kwargs, err_msg + ':\n' + _indent(str(e)), env)
+        _fail(kwargs, err_msg + ':\n' + indent(str(e)), env)
     # Check for split output + return code (tuple)
     if isinstance(result, tuple):
         output, success = result

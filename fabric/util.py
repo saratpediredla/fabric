@@ -43,4 +43,8 @@ def lazy_format(string, env):
 def escape_bash_specialchars(txt):
     return txt.replace('$', "\\$")
 
+def indent(text, level=4):
+    "Indent all lines in text with 'level' number of spaces, default 4."
+    return '\n'.join(((' ' * level) + line for line in text.splitlines()))
+
 
