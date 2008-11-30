@@ -7,6 +7,8 @@ Created by Christian Vest Hansen on 2008-11-30.
 Copyright (c) 2008 Unwire. All rights reserved.
 """
 
+from util import *
+
 def plugin_main(fab):
     @fab.operation
     def require(*varnames, **kwargs):
@@ -50,8 +52,8 @@ def plugin_main(fab):
             ("The '%(fab_cur_command)s' command requires " + vars_msg) % fab.env
         )
         if 'used_for' in kwargs:
-            print("This variable is used for %s" % _lazy_format(
-                kwargs['used_for']))
+            print("This variable is used for %s" % lazy_format(
+                kwargs['used_for']), fab.env)
         if 'provided_by' in kwargs:
             print("Get the variable by running one of these commands:")
             to_s = lambda obj: getattr(obj, '__name__', str(obj))
@@ -105,7 +107,7 @@ def plugin_main(fab):
     
         try:
             default_str = default and (" [%s]" % str(default).strip()) or ""
-            prompt_msg = _lazy_format("%s%s: " % (msg.strip(), default_str))
+            prompt_msg = lazy_format("%s%s: " % (msg.strip(), default_str), fab.env)
         
             while True:
                 value = value or raw_input(prompt_msg) or default
@@ -146,8 +148,8 @@ def plugin_main(fab):
             put('bin/project.zip', '/tmp/project.zip')
     
         """
-        localpath = _lazy_format(localpath, env)
-        remotepath = _lazy_format(remotepath, env)
+        localpath = lazy_format(localpath, env)
+        remotepath = lazy_format(remotepath, env)
         if not os.path.exists(localpath):
             return False
         ftp = client.open_sftp()
@@ -183,8 +185,8 @@ def plugin_main(fab):
     
         """
         ftp = client.open_sftp()
-        localpath = _lazy_format(localpath) + '.' + host
-        remotepath = _lazy_format(remotepath)
+        localpath = lazy_format(localpath, env) + '.' + host
+        remotepath = lazy_format(remotepath, env)
         print("[%s] download: %s <- %s" % (host, localpath, remotepath))
         ftp.get(remotepath, localpath)
         return True
@@ -209,10 +211,10 @@ def plugin_main(fab):
             run("ls")
     
         """
-        cmd = _lazy_format(cmd, env)
+        cmd = lazy_format(cmd, env)
         real_cmd = env['fab_shell'] + ' "' + cmd.replace('"', '\\"') + '"'
-        real_cmd = _escape_bash_specialchars(real_cmd)
-        if not _confirm_proceed('run', host, kwargs):
+        real_cmd = escape_bash_specialchars(real_cmd)
+        if not confirm_proceed('run', host, kwargs, fab.env):
             return False
         if not env['fab_quiet']:
             print("[%s] run: %s" % (host, cmd))
@@ -253,16 +255,16 @@ def plugin_main(fab):
             sudo("httpd restart", user='apache')
     
         """
-        cmd = _lazy_format(cmd, env)
+        cmd = lazy_format(cmd, env)
         if "user" in kwargs:
-            user = _lazy_format(kwargs['user'], env)
+            user = lazy_format(kwargs['user'], env)
             sudo_cmd = "sudo -S -p '%s' -u " + user + " "
         else:
             sudo_cmd = "sudo -S -p '%s' "
         sudo_cmd = sudo_cmd % env['fab_sudo_prompt']
         real_cmd = env['fab_shell'] + ' "' + cmd.replace('"', '\\"') + '"'
         real_cmd = sudo_cmd + ' ' + real_cmd
-        real_cmd = _escape_bash_specialchars(real_cmd)
+        real_cmd = escape_bash_specialchars(real_cmd)
         cmd = env['fab_print_real_sudo'] and real_cmd or cmd
         if not _confirm_proceed('sudo', host, kwargs):
             return False # TODO: should we return False in fail??
@@ -298,12 +300,12 @@ def plugin_main(fab):
             local("make clean dist", fail='abort')
     
         """
-        # we don't need _escape_bash_specialchars for local execution
-        final_cmd = _lazy_format(cmd)
+        # we don't need escape_bash_specialchars for local execution
+        final_cmd = lazy_format(cmd, fab.env)
         print("[localhost] run: " + final_cmd)
         retcode = subprocess.call(final_cmd, shell=True)
         if retcode != 0:
-            _fail(kwargs, "Local command failed:\n" + _indent(final_cmd))
+            fail(kwargs, "Local command failed:\n" + indent(final_cmd), fab.env)
 
     @fab.operation
     def local_per_host(cmd, **kwargs):
@@ -333,11 +335,11 @@ def plugin_main(fab):
                 env['fab_host'] = hostname
                 con_envs.append(env)
         for env in con_envs:
-            final_cmd = _lazy_format(cmd, env)
-            print(_lazy_format("[localhost/$(fab_host)] run: " + final_cmd, env))
+            final_cmd = lazy_format(cmd, env)
+            print(lazy_format("[localhost/$(fab_host)] run: " + final_cmd, env))
             retcode = subprocess.call(final_cmd, shell=True)
             if retcode != 0:
-                _fail(kwargs, "Local command failed:\n" + _indent(final_cmd))
+                fail(kwargs, "Local command failed:\n" + indent(final_cmd), env)
 
     @fab.operation
     def load(filename, **kwargs):
@@ -362,8 +364,8 @@ def plugin_main(fab):
     
         """
         if not os.path.exists(filename):
-            _fail(kwargs, "Load failed:\n" + _indent(
-                "File not found: " + filename))
+            fail(kwargs, "Load failed:\n" + indent(
+                "File not found: " + filename), fab.env)
             return
     
         if filename in fab.loaded_fabfiles:
@@ -407,7 +409,7 @@ def plugin_main(fab):
     @fab.operation
     def abort(msg):
         "Simple way for users to have their commands abort the process."
-        print(_lazy_format('[$(fab_host)] Error: %s' % msg, fab.env))
+        print(lazy_format('[$(fab_host)] Error: %s' % msg, fab.env))
         sys.exit(1)
 
     @fab.operation
@@ -434,6 +436,5 @@ def plugin_main(fab):
             if isinstance(cmd, basestring):
                 cmd = fab.commands[item]
             _execute_command(cmd.__name__, args, kwargs, skip_executed=True)
-
 
 

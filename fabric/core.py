@@ -35,6 +35,7 @@ from functools import wraps
 
 import core_plugin
 from interop import get_username, partition, get_home_directory
+from util import *
 
 # Paramiko
 try:
@@ -285,7 +286,7 @@ def _list_commands(**kwargs):
             else:
                 print("Don't know how to list '%s'." % k)
                 print("Try one of these instead:")
-                print(_indent('\n'.join([
+                print(indent('\n'.join([
                     'cmds', 'commands',
                     'ops', 'operations',
                     'dec', 'decorators',
@@ -335,7 +336,7 @@ def _shell(**kwargs):
     hosts = filter(lambda k: not kwargs[k], kwargs.keys())
     if hosts:
         if CONNECTIONS:
-            _fail(kwargs, "Already connected to predefined fab_hosts.")
+            fail(kwargs, "Already connected to predefined fab_hosts.", ENV)
         set(fab_hosts = hosts)
     def lines():
         try:
@@ -457,7 +458,7 @@ class HostConnection(object):
             password = None
             while not connected:
                 try:
-                    password = getpass.getpass(_lazy_format(PASS_PROMPT, env))
+                    password = getpass.getpass(lazy_format(PASS_PROMPT, env))
                     env['fab_password'] = password
                     self._do_connect(client, env)
                     connected = True
@@ -493,10 +494,6 @@ class HostConnection(object):
     def __str__(self):
         return self.host_local_env['fab_host']
 
-def _indent(text, level=4):
-    "Indent all lines in text with 'level' number of spaces, default 4."
-    return '\n'.join(((' ' * level) + line for line in text.splitlines()))
-
 def _print_help_for(name, doc):
     "Output a pretty-printed help text for the given name & doc"
     default_help_msg = '* No help-text found.'
@@ -511,7 +508,7 @@ def _print_help_for(name, doc):
     if lines:
         msg = '\n'.join(lines)
         if not msg.startswith('    '):
-            msg = _indent(msg)
+            msg = indent(msg)
         print("Help for '%s':\n%s" % (name, msg))
     else:
         print("No help message found for '%s'." % name)
@@ -575,10 +572,10 @@ def _connect():
     for user, host_connections in host_connections_by_user.iteritems():
         user_env = dict(ENV)
         user_env.update(user_envs[user])
-        print(_lazy_format("Logging into the following hosts as $(fab_user):",
+        print(lazy_format("Logging into the following hosts as $(fab_user):",
             user_env))
         for conn in host_connections:
-            print(_indent(str(conn)))
+            print(indent(str(conn)))
         for conn in host_connections:
             conn.connect()
         CONNECTIONS += host_connections
@@ -588,24 +585,6 @@ def _disconnect():
     global CONNECTIONS
     map(HostConnection.disconnect, CONNECTIONS)
     CONNECTIONS = []
-
-_LAZY_FORMAT_SUBSTITUTER = re.compile(r'(\\?)(\$\((?P<var>[\w-]+?)\))')
-def _lazy_format(string, env=ENV):
-    "Do recursive string substitution of ENV vars - both lazy and eager."
-    if string is None:
-        return None
-    env = dict([(k, str(v)) for k, v in env.items()])
-    string = string.replace('%', '%%')
-    def replacer_fn(match):
-        escape = match.group(1)
-        if escape == '\\':
-            return match.group(2)
-        var = match.group('var')
-        if var in env:
-            return escape + _lazy_format(env[var] % env, env)
-        else:
-            return match.group(0)
-    return re.sub(_LAZY_FORMAT_SUBSTITUTER, replacer_fn, string % env)
 
 def _try_run_operation(fn, host, client, env, *args, **kwargs):
     """
@@ -619,7 +598,7 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
     except SystemExit:
         raise
     except BaseException, e:
-        _fail(kwargs, err_msg + ':\n' + _indent(str(e)), env)
+        fail(kwargs, err_msg + ':\n' + indent(str(e)), env)
     # Check for split output + return code (tuple)
     if isinstance(result, tuple):
         output, success = result
@@ -628,35 +607,17 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
         output = ""
         success = result
     if not success:
-        _fail(kwargs, err_msg + '.', env)
+        fail(kwargs, err_msg + '.', env)
     # Return any captured output (will execute if fail != abort)
     return output
 
 def _confirm_proceed(exec_type, host, kwargs):
     if 'confirm' in kwargs:
-        infotuple = (exec_type, host, _lazy_format(kwargs['confirm']))
+        infotuple = (exec_type, host, lazy_format(kwargs['confirm']), ENV)
         question = "Confirm %s for host %s: %s [yN] " % infotuple
         answer = raw_input(question)
         return answer and answer in 'yY'
     return True
-
-def _fail(kwargs, msg, env=ENV):
-    # Get failure code
-    codes = {
-        'ignore': (1, ''),
-        'warn': (2, 'Warning: '),
-        'abort': (3, 'Error: '),
-    }
-    code, msg_prefix = codes[env['fab_fail']]
-    if 'fail' in kwargs:
-        code, msg_prefix = codes[kwargs['fail']]
-    # If warn or above, print message
-    if code > 1:
-        print(msg_prefix + _lazy_format(msg, env))
-        # If abort, also exit
-        if code > 2:
-            sys.exit(1)
-
 
 def _start_outputter(prefix, chan, env, stderr=False, capture=None):
     def outputter(prefix, chan, env, stderr, capture):
@@ -693,13 +654,13 @@ def _start_outputter(prefix, chan, env, stderr=False, capture=None):
                         # Get pass, and make sure we communicate it back to the
                         # global ENV since that was obviously empty.
                         ENV['fab_password'] = env['fab_password'] = \
-                            getpass.getpass(_lazy_format(PASS_PROMPT, env))
+                            getpass.getpass(lazy_format(PASS_PROMPT, env))
                     # Re-prompt -- whatever we supplied last time (the
                     # current value of env['fab_password']) was incorrect.
                     # Don't overwrite ENV because it might not be empty.
                     if again_prompt:
                         env['fab_password'] = \
-                            getpass.getpass(_lazy_format(PASS_PROMPT, env))
+                            getpass.getpass(lazy_format(PASS_PROMPT, env))
                     # Either way, we have a password now, so send it.
                     chan.sendall(env['fab_password']+'\n')
                     out = ""
@@ -781,9 +742,9 @@ def _execute_command(cmd, args, kwargs, skip_executed=False):
     # Setup
     command = COMMANDS[cmd]
     if args is not None:
-        args = map(_lazy_format, args)
+        args = map(lazy_format, args)
     if kwargs is not None:
-        kwargs = dict(zip(kwargs.keys(), map(_lazy_format, kwargs.values())))
+        kwargs = dict(zip(kwargs.keys(), map(lazy_format, kwargs.values())))
     # Remember executed commands. Don't run them again if skip_executed.
     if skip_executed and _has_executed(command, args, kwargs):
         args_msg = (args or kwargs) and (" with %r, %r" % (args, kwargs)) or ""
@@ -828,7 +789,7 @@ def _execute_at_target(command, args, kwargs):
         command, 'hosts', ENV.get('fab_hosts') or []))
     roles = getattr(command, 'roles', [])
     for role in roles:
-        role = _lazy_format(role)
+        role = lazy_format(role, ENV)
         role_hosts = ENV.get(role)
         map(hosts.add, role_hosts)
     if mode in ('rolling', 'fanout'):
@@ -853,7 +814,7 @@ def _execute_at_target(command, args, kwargs):
         else:
             command(*args, **kwargs)
     else:
-        _fail({'fail':'abort'}, "Unknown fab_mode: '$(fab_mode)'")
+        fail({'fail':'abort'}, "Unknown fab_mode: '$(fab_mode)'", ENV)
     # Disconnect (to clear things up for next command)
     # TODO: be intelligent, persist connections for hosts
     # that will be used again this session.
@@ -863,9 +824,6 @@ def _needs_connect(command):
     for operation in command.func_code.co_names:
         if getattr(OPERATIONS.get(operation), 'connects', False):
             return True
-
-def _escape_bash_specialchars(txt):
-    return txt.replace('$', "\\$")
 
 def main():
     args = sys.argv[1:]
