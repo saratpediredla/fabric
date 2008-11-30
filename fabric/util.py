@@ -39,3 +39,8 @@ def lazy_format(string, env):
         else:
             return match.group(0)
     return re.sub(_LAZY_FORMAT_SUBSTITUTER, replacer_fn, string % env)
+
+def escape_bash_specialchars(txt):
+    return txt.replace('$', "\\$")
+
+

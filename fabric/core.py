@@ -419,7 +419,7 @@ def run(host, client, env, cmd, **kwargs):
     """
     cmd = lazy_format(cmd, env)
     real_cmd = env['fab_shell'] + ' "' + cmd.replace('"', '\\"') + '"'
-    real_cmd = _escape_bash_specialchars(real_cmd)
+    real_cmd = escape_bash_specialchars(real_cmd)
     if not _confirm_proceed('run', host, kwargs):
         return False
     if not env['fab_quiet']:
@@ -470,7 +470,7 @@ def sudo(host, client, env, cmd, **kwargs):
     sudo_cmd = sudo_cmd % env['fab_sudo_prompt']
     real_cmd = env['fab_shell'] + ' "' + cmd.replace('"', '\\"') + '"'
     real_cmd = sudo_cmd + ' ' + real_cmd
-    real_cmd = _escape_bash_specialchars(real_cmd)
+    real_cmd = escape_bash_specialchars(real_cmd)
     cmd = env['fab_print_real_sudo'] and real_cmd or cmd
     if not _confirm_proceed('sudo', host, kwargs):
         return False # TODO: should we return False in fail??
@@ -506,7 +506,7 @@ def local(cmd, **kwargs):
         local("make clean dist", fail='abort')
     
     """
-    # we don't need _escape_bash_specialchars for local execution
+    # we don't need escape_bash_specialchars for local execution
     final_cmd = lazy_format(cmd)
     print("[localhost] run: " + final_cmd)
     retcode = subprocess.call(final_cmd, shell=True)
@@ -1280,9 +1280,6 @@ def _needs_connect(command):
     for operation in command.func_code.co_names:
         if getattr(OPERATIONS.get(operation), 'connects', False):
             return True
-
-def _escape_bash_specialchars(txt):
-    return txt.replace('$', "\\$")
 
 def main():
     args = sys.argv[1:]
