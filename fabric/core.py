@@ -259,7 +259,7 @@ def require(*varnames, **kwargs):
     )
     if 'used_for' in kwargs:
         print("This variable is used for %s" % lazy_format(
-            kwargs['used_for']))
+            kwargs['used_for']), ENV)
     if 'provided_by' in kwargs:
         print("Get the variable by running one of these commands:")
         to_s = lambda obj: getattr(obj, '__name__', str(obj))
@@ -313,7 +313,7 @@ def prompt(varname, msg, validate=None, default=None):
     
     try:
         default_str = default and (" [%s]" % str(default).strip()) or ""
-        prompt_msg = lazy_format("%s%s: " % (msg.strip(), default_str))
+        prompt_msg = lazy_format("%s%s: " % (msg.strip(), default_str), ENV)
         
         while True:
             value = value or raw_input(prompt_msg) or default
@@ -391,8 +391,8 @@ def download(host, client, env, remotepath, localpath, **kwargs):
     
     """
     ftp = client.open_sftp()
-    localpath = lazy_format(localpath) + '.' + host
-    remotepath = lazy_format(remotepath)
+    localpath = lazy_format(localpath, env) + '.' + host
+    remotepath = lazy_format(remotepath, env)
     print("[%s] download: %s <- %s" % (host, localpath, remotepath))
     ftp.get(remotepath, localpath)
     return True
@@ -507,7 +507,7 @@ def local(cmd, **kwargs):
     
     """
     # we don't need escape_bash_specialchars for local execution
-    final_cmd = lazy_format(cmd)
+    final_cmd = lazy_format(cmd, ENV)
     print("[localhost] run: " + final_cmd)
     retcode = subprocess.call(final_cmd, shell=True)
     if retcode != 0:
@@ -1051,7 +1051,7 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
 
 def _confirm_proceed(exec_type, host, kwargs):
     if 'confirm' in kwargs:
-        infotuple = (exec_type, host, lazy_format(kwargs['confirm']))
+        infotuple = (exec_type, host, lazy_format(kwargs['confirm']), ENV)
         question = "Confirm %s for host %s: %s [yN] " % infotuple
         answer = raw_input(question)
         return answer and answer in 'yY'
@@ -1245,7 +1245,7 @@ def _execute_at_target(command, args, kwargs):
         command, 'hosts', ENV.get('fab_hosts') or []))
     roles = getattr(command, 'roles', [])
     for role in roles:
-        role = lazy_format(role)
+        role = lazy_format(role, ENV)
         role_hosts = ENV.get(role)
         map(hosts.add, role_hosts)
     if mode in ('rolling', 'fanout'):
