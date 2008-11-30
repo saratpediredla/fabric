@@ -420,7 +420,7 @@ def run(host, client, env, cmd, **kwargs):
     cmd = lazy_format(cmd, env)
     real_cmd = env['fab_shell'] + ' "' + cmd.replace('"', '\\"') + '"'
     real_cmd = escape_bash_specialchars(real_cmd)
-    if not _confirm_proceed('run', host, kwargs):
+    if not confirm_proceed('run', host, kwargs, env):
         return False
     if not env['fab_quiet']:
         print("[%s] run: %s" % (host, cmd))
@@ -472,7 +472,7 @@ def sudo(host, client, env, cmd, **kwargs):
     real_cmd = sudo_cmd + ' ' + real_cmd
     real_cmd = escape_bash_specialchars(real_cmd)
     cmd = env['fab_print_real_sudo'] and real_cmd or cmd
-    if not _confirm_proceed('sudo', host, kwargs):
+    if not confirm_proceed('sudo', host, kwargs, env):
         return False # TODO: should we return False in fail??
     if not env['fab_quiet']:
         print("[%s] sudo: %s" % (host, cmd))
@@ -1044,14 +1044,6 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
         fail(kwargs, err_msg + '.', env)
     # Return any captured output (will execute if fail != abort)
     return output
-
-def _confirm_proceed(exec_type, host, kwargs):
-    if 'confirm' in kwargs:
-        infotuple = (exec_type, host, lazy_format(kwargs['confirm']), ENV)
-        question = "Confirm %s for host %s: %s [yN] " % infotuple
-        answer = raw_input(question)
-        return answer and answer in 'yY'
-    return True
 
 def _start_outputter(prefix, chan, env, stderr=False, capture=None):
     def outputter(prefix, chan, env, stderr, capture):

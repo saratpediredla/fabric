@@ -64,4 +64,13 @@ def fail(kwargs, msg, env):
         if code > 2:
             sys.exit(1)
 
+def confirm_proceed(exec_type, host, kwargs, env):
+    if 'confirm' in kwargs:
+        infotuple = (exec_type, host, lazy_format(kwargs['confirm']), env)
+        question = "Confirm %s for host %s: %s [yN] " % infotuple
+        answer = raw_input(question)
+        return answer and answer in 'yY'
+    return True
+
+
 
