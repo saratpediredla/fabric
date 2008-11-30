@@ -363,22 +363,7 @@ def plugin_main(fab):
             load("conf/production-settings.py")
     
         """
-        if not os.path.exists(filename):
-            fail(kwargs, "Load failed:\n" + indent(
-                "File not found: " + filename), fab.env)
-            return
-    
-        if filename in fab.loaded_fabfiles:
-            return
-        fab.loaded_fabfiles.add(filename)
-    
-        captured = {}
-        execfile(filename, _new_namespace(), captured)
-        for name, obj in captured.items():
-            if not name.startswith('_') and isinstance(obj, types.FunctionType):
-                fab.commands[name] = obj
-            if not name.startswith('_'):
-                __builtins__[name] = obj
+        fab.load_fabfile(filename, **kwargs)
 
     @fab.operation
     def upload_project(**kwargs):

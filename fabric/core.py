@@ -33,7 +33,8 @@ import types
 from collections import deque
 from functools import wraps
 
-import core_plugin
+import core_plugin_ops
+import core_plugin_cmds
 from interop import get_username, partition, get_home_directory
 from util import *
 
@@ -152,6 +153,40 @@ class Fabric(object):
         # Mark this operation as requiring a connection
         wrapper.connects = True
         return wrapper
+    def load_default_settings(self):
+        "Load user-default fabric settings from ~/.fabric"
+        cfg = get_home_directory() + "/.fabric"
+        if os.path.exists(cfg):
+            comments = lambda s: s and not s.startswith("#")
+            settings = filter(comments, open(cfg, 'r'))
+            settings = [(k.strip(), v.strip()) for k, _, v in
+                [partition(s, '=') for s in settings]]
+            self.env.update(settings)
+    def load_fabfile(self, filename, **kwargs):
+        if not os.path.exists(filename):
+            fail(kwargs, "Load failed:\n" + indent(
+                "File not found: " + filename), self.env)
+            return
+        if filename in self.loaded_fabfiles:
+            return
+        self.loaded_fabfiles.add(filename)
+        captured = {}
+        execfile(filename, self.to_namespace(), captured)
+        for name, obj in captured.items():
+            if not name.startswith('_') and isinstance(obj, types.FunctionType):
+                self.commands[name] = obj
+            if not name.startswith('_'):
+                __builtins__[name] = obj
+    def validate_commands(self, cmds):
+        if not cmds:
+            print("No commands given.")
+            if 'list' in self.commands:
+                self.commands['list']()
+        else:
+            for cmd in cmds:
+                if not cmd[0] in self.commands:
+                    print("No such command: %s" % cmd[0])
+                    sys.exit(1)
 
 
 #
@@ -509,16 +544,6 @@ def _pick_fabfile():
     else:
         return guesses[0] # load() will barf for us...
 
-def _load_default_settings():
-    "Load user-default fabric settings from ~/.fabric"
-    cfg = get_home_directory() + "/.fabric"
-    if os.path.exists(cfg):
-        comments = lambda s: s and not s.startswith("#")
-        settings = filter(comments, open(cfg, 'r'))
-        settings = [(k.strip(), v.strip()) for k, _, v in
-            [partition(s, '=') for s in settings]]
-        ENV.update(settings)
-
 def _parse_args(args):
     cmds = []
     for cmd in args:
@@ -534,16 +559,6 @@ def _parse_args(args):
                     cmd_args.append(k)
         cmds.append((cmd, cmd_args, cmd_kwargs))
     return cmds
-
-def _validate_commands(cmds):
-    if not cmds:
-        print("No commands given.")
-        _list_commands()
-    else:
-        for cmd in cmds:
-            if not cmd[0] in COMMANDS:
-                print("No such command: %s" % cmd[0])
-                sys.exit(1)
 
 def _execute_commands(cmds):
     for cmd, args, kwargs in cmds:
@@ -640,13 +655,16 @@ def main():
     args = sys.argv[1:]
     try:
         try:
-            print("Fabric v. %(fab_version)s." % ENV)
-            _load_default_settings()
+            print("Fabric v. %s." % __version__)
+            fab = Fabric()
+            fab.load_default_settings()
+            core_plugin_ops.plugin_main(fab)
+            core_plugin_cmds.plugin_main(fab)
             fabfile = _pick_fabfile()
-            load(fabfile, fail='warn')
+            fab.load_fabfile(fabfile, fail='warn')
             commands = _parse_args(args)
-            _validate_commands(commands)
-            _execute_commands(commands)
+            fab.validate_commands(commands)
+            fab.execute_commands(commands)
         finally:
             _disconnect()
         print("Done.")
