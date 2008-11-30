@@ -90,13 +90,13 @@ def plugin_main(fab):
     
         """)
 
-    @command("about")
+    @fab.command("about")
     def _print_about(**kwargs):
         "Display Fabric version, warranty and license information"
         print(__about__ % fab.env)
 
-    @mode("broad")
-    @command("list")
+    @fab.mode("broad")
+    @fab.command("list")
     def _list_commands(**kwargs):
         """
         Display a list of commands with descriptions.
@@ -131,8 +131,8 @@ def plugin_main(fab):
             print("Available commands are:")
             _list_objs(fab.commands)
 
-    @mode("broad")
-    @command("let")
+    @fab.mode("broad")
+    @fab.command("let")
     def _let(**kwargs):
         """
         Set a Fabric variable.
@@ -146,8 +146,8 @@ def plugin_main(fab):
                 v = (v % fab.env)
             fab.env[k] = v
 
-    @mode("broad")
-    @command("shell")
+    @fab.mode("broad")
+    @fab.command("shell")
     def _shell(**kwargs):
         """
         Start an interactive shell connection to the specified hosts.

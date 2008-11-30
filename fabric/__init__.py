@@ -1,5 +1,5 @@
 
-from core import main
+from core import main, Fabric
 
-__all__ = ['main']
+__all__ = ['main', 'Fabric']
 
