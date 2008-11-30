@@ -47,4 +47,21 @@ def indent(text, level=4):
     "Indent all lines in text with 'level' number of spaces, default 4."
     return '\n'.join(((' ' * level) + line for line in text.splitlines()))
 
+def fail(kwargs, msg, env):
+    # Get failure code
+    codes = {
+        'ignore': (1, ''),
+        'warn': (2, 'Warning: '),
+        'abort': (3, 'Error: '),
+    }
+    code, msg_prefix = codes[env['fab_fail']]
+    if 'fail' in kwargs:
+        code, msg_prefix = codes[kwargs['fail']]
+    # If warn or above, print message
+    if code > 1:
+        print(msg_prefix + lazy_format(msg, env))
+        # If abort, also exit
+        if code > 2:
+            sys.exit(1)
+
 
