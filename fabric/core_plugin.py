@@ -266,7 +266,7 @@ def plugin_main(fab):
         real_cmd = sudo_cmd + ' ' + real_cmd
         real_cmd = escape_bash_specialchars(real_cmd)
         cmd = env['fab_print_real_sudo'] and real_cmd or cmd
-        if not _confirm_proceed('sudo', host, kwargs):
+        if not confirm_proceed('sudo', host, kwargs, env):
             return False # TODO: should we return False in fail??
         if not env['fab_quiet']:
             print("[%s] sudo: %s" % (host, cmd))

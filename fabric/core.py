@@ -611,14 +611,6 @@ def _try_run_operation(fn, host, client, env, *args, **kwargs):
     # Return any captured output (will execute if fail != abort)
     return output
 
-def _confirm_proceed(exec_type, host, kwargs):
-    if 'confirm' in kwargs:
-        infotuple = (exec_type, host, lazy_format(kwargs['confirm']), ENV)
-        question = "Confirm %s for host %s: %s [yN] " % infotuple
-        answer = raw_input(question)
-        return answer and answer in 'yY'
-    return True
-
 def _start_outputter(prefix, chan, env, stderr=False, capture=None):
     def outputter(prefix, chan, env, stderr, capture):
         # Read one "packet" at a time, which lets us get less-than-a-line
