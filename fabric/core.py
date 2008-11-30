@@ -188,62 +188,6 @@ class Fabric(object):
                     print("No such command: %s" % cmd[0])
                     sys.exit(1)
 
-
-#
-# Helper decorators for use in fabfiles:
-#
-
-@decorator
-def hosts(*hosts):
-    "Tags function object with desired fab_hosts to run on."
-    def decorator(fn):
-        fn.hosts = hosts
-        return fn
-    return decorator
-
-@decorator
-def roles(*roles):
-    "Tags function object with desired fab_hosts to run on."
-    def decorator(fn):
-        fn.roles = roles
-        return fn
-    return decorator
-
-@decorator
-def mode(mode):
-    "Tags function object with desired fab_mode to run in."
-    def decorator(fn):
-        fn.mode = mode
-        return fn
-    return decorator
-
-@decorator
-def requires(*args, **kwargs):
-    """
-    Calls `require` with the supplied arguments prior to executing the
-    decorated command.
-    """
-    return _new_call_chain_decorator(require, *args, **kwargs)
-
-@decorator
-def depends(*args, **kwargs):
-    """
-    Calls `invoke` with the supplied arguments prior to executing the
-    decorated command.
-    """
-    return _new_call_chain_decorator(invoke, *args, **kwargs)
-
-def _new_call_chain_decorator(operation, *op_args, **op_kwargs):
-    if getattr(operation, 'connects', False):
-        e = "Operation %s requires a connection and cannot be chained."
-        raise TypeError(e % operation)
-    def decorator(command):
-        chain = command._call_chain = getattr(
-                command, '_call_chain', deque())
-        chain.appendleft(lambda: operation(*op_args, **op_kwargs))
-        return command
-    return decorator
-
 #
 # Per-operation execution strategies for "broad" mode.
 #
