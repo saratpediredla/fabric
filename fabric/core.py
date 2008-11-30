@@ -511,7 +511,7 @@ def local(cmd, **kwargs):
     print("[localhost] run: " + final_cmd)
     retcode = subprocess.call(final_cmd, shell=True)
     if retcode != 0:
-        _fail(kwargs, "Local command failed:\n" + indent(final_cmd))
+        _fail(kwargs, "Local command failed:\n" + indent(final_cmd), ENV)
 
 @operation
 def local_per_host(cmd, **kwargs):
@@ -545,7 +545,7 @@ def local_per_host(cmd, **kwargs):
         print(lazy_format("[localhost/$(fab_host)] run: " + final_cmd, env))
         retcode = subprocess.call(final_cmd, shell=True)
         if retcode != 0:
-            _fail(kwargs, "Local command failed:\n" + indent(final_cmd))
+            _fail(kwargs, "Local command failed:\n" + indent(final_cmd), env)
 
 @operation
 def load(filename, **kwargs):
@@ -571,7 +571,7 @@ def load(filename, **kwargs):
     """
     if not os.path.exists(filename):
         _fail(kwargs, "Load failed:\n" + indent(
-            "File not found: " + filename))
+            "File not found: " + filename), ENV)
         return
     
     if filename in _LOADED_FABFILES:
@@ -770,7 +770,7 @@ def _shell(**kwargs):
     hosts = filter(lambda k: not kwargs[k], kwargs.keys())
     if hosts:
         if CONNECTIONS:
-            _fail(kwargs, "Already connected to predefined fab_hosts.")
+            _fail(kwargs, "Already connected to predefined fab_hosts.", ENV)
         set(fab_hosts = hosts)
     def lines():
         try:
@@ -1053,7 +1053,7 @@ def _confirm_proceed(exec_type, host, kwargs):
         return answer and answer in 'yY'
     return True
 
-def _fail(kwargs, msg, env=ENV):
+def _fail(kwargs, msg, env):
     # Get failure code
     codes = {
         'ignore': (1, ''),
@@ -1266,7 +1266,7 @@ def _execute_at_target(command, args, kwargs):
         else:
             command(*args, **kwargs)
     else:
-        _fail({'fail':'abort'}, "Unknown fab_mode: '$(fab_mode)'")
+        _fail({'fail':'abort'}, "Unknown fab_mode: '$(fab_mode)'", ENV)
     # Disconnect (to clear things up for next command)
     # TODO: be intelligent, persist connections for hosts
     # that will be used again this session.
