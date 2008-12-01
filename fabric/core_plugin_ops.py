@@ -120,7 +120,7 @@ def plugin_main(fab):
                 if value:
                     break
         
-            set(**{varname: value})
+            fab.env[varname] = value
         except (KeyboardInterrupt, EOFError):
             print
             raise KeyboardInterrupt
@@ -176,7 +176,7 @@ def plugin_main(fab):
     
         Example:
     
-            set(fab_hosts=['node1.cluster.com', 'node2.cluster.com'])
+            config.fab_hosts=['node1.cluster.com', 'node2.cluster.com']
             download('/var/log/server.log', 'server.log')
     
         The above code will produce two files on your local system, called

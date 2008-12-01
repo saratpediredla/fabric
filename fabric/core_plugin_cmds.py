@@ -157,7 +157,7 @@ def plugin_main(fab):
         hosts. If you provide hostnames and Fabric is already connected, then
         Fabric will, depending on `fab_fail`, complain and abort.
     
-        The `fab_fail` variable can be overwritten with the `set` command, or
+        The `fab_fail` variable can be overwritten on the `config` object, or
         by specifying an additional `fail` argument.
     
         Examples:
@@ -172,7 +172,7 @@ def plugin_main(fab):
         if hosts:
             if fab.connections:
                 fail(kwargs, "Already connected to predefined fab_hosts.", fab.env)
-            set(fab_hosts = hosts)
+            fab.env.fab_hosts = hosts
         def lines():
             try:
                 while True:
