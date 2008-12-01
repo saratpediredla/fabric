@@ -366,6 +366,8 @@ class Fabric(object):
             print("Warning: The 'rolling' and 'fanout' fab_modes are " +
                   "deprecated.\n   Use 'broad' and 'deep' instead.")
             mode = self.env['fab_local_mode'] = 'broad'
+        # Fix args vs. kwargs in certain functions
+        args, kwargs = _retrofit_args(args, kwargs, command)
         # Run command once, with each operation running once per host.
         if mode == 'broad':
             command(*args, **kwargs)
@@ -374,12 +376,12 @@ class Fabric(object):
             # Determine whether we need to connect for this command, do so if so
             if _needs_connect(command):
                 _check_fab_hosts()
-                _connect()
+                self.connect()
             # Gracefully handle local-only commands
             if self.connections:
                 for host_conn in self.connections:
-                    ENV['fab_host_conn'] = host_conn
-                    ENV['fab_host'] = host_conn.host_local_env['fab_host']
+                    self.env['fab_host_conn'] = host_conn
+                    self.env['fab_host'] = host_conn.host_local_env['fab_host']
                     command(*args, **kwargs)
             else:
                 command(*args, **kwargs)
@@ -388,7 +390,24 @@ class Fabric(object):
         # Disconnect (to clear things up for next command)
         # TODO: be intelligent, persist connections for hosts
         # that will be used again this session.
-        _disconnect()
+        self.disconnect()
+
+def _retrofit_args(args, kwargs, command):
+    not_enough_positionals = len(args) > command.func_code.co_argcount
+    variadic = (command.func_code.co_flags & 4) == 4
+    has_kwargs = (command.func_code.co_flags & 8) == 8
+    if not variadic and not_enough_positionals:
+        if has_kwargs:
+            nkwargs = dict()
+            nkwargs.update(kwargs)
+            nkwargs.update([(x, x) for x in args])
+            return ([], nkwargs)
+        else:
+            return None # our way of indicating an error
+    else:
+        return (args, kwargs) # A.O.K.
+        
+    
 
 #
 # Per-operation execution strategies for "broad" mode.
@@ -550,7 +569,7 @@ def _pick_fabfile():
     else:
         return guesses[0] # load() will barf for us...
 
-def parse_args(args):
+def parse_args(args, env={}):
     cmds = []
     for cmd in args:
         cmd_args = []
@@ -560,7 +579,7 @@ def parse_args(args):
             for cmd_arg_kv in cmd_str_args.split(','):
                 k, _, v = partition(cmd_arg_kv, '=')
                 if v:
-                    cmd_kwargs[k] = (v % ENV) or k
+                    cmd_kwargs[k] = (v % env) or k
                 else:
                     cmd_args.append(k)
         cmds.append((cmd, cmd_args, cmd_kwargs))
@@ -583,7 +602,7 @@ def main():
             core_plugin_cmds.plugin_main(fab)
             fabfile = _pick_fabfile()
             fab.load_fabfile(fabfile, fail='warn')
-            commands = parse_args(args)
+            commands = parse_args(args, fab.env)
             fab.validate_commands(commands)
             fab.execute_commands(commands)
         finally:
