@@ -7,6 +7,7 @@ Created by Christian Vest Hansen on 2008-11-30.
 Copyright (c) 2008 Unwire. All rights reserved.
 """
 
+import sys
 from util import *
 
 def _print_help_for(name, doc):
@@ -91,9 +92,9 @@ def plugin_main(fab):
         """)
 
     @fab.command("about")
-    def _print_about(**kwargs):
+    def _print_about():
         "Display Fabric version, warranty and license information"
-        print(__about__ % fab.env)
+        print(about % fab.env)
 
     @fab.mode("broad")
     @fab.command("list")

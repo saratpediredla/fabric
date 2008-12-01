@@ -47,21 +47,9 @@ except ImportError:
     print("  $ sudo easy_install paramiko")
     sys.exit(1)
 
-__version__ = '0.0.9'
-__author__ = 'Christian Vest Hansen'
-__author_email__ = 'karmazilla@gmail.com'
-__url__ = 'http://www.nongnu.org/fab/'
-__license__ = 'GPL-2'
-__about__ = '''\
-   Fabric v. %(fab_version)s, Copyright (C) 2008 %(fab_author)s.
-   Fabric comes with ABSOLUTELY NO WARRANTY.
-   This is free software, and you are welcome to redistribute it
-   under certain conditions. Please reference full license for details.
-'''
-
 DEFAULT_ENV = {
-    'fab_version': __version__,
-    'fab_author': __author__,
+    'fab_version': version,
+    'fab_author': author,
     'fab_mode': 'broad',
     'fab_submode': 'serial',
     'fab_port': 22,
@@ -403,7 +391,9 @@ def _retrofit_args(args, kwargs, command):
             nkwargs.update([(x, x) for x in args])
             return ([], nkwargs)
         else:
-            return None # our way of indicating an error
+            msg = "Cannot apply %s to arguments (%s, %s)" % (
+                command.func_name, args, kwargs)
+            fail({}, msg, {'fab_fail':'abort'})
     else:
         return (args, kwargs) # A.O.K.
         
@@ -595,7 +585,7 @@ def main():
     fab = Fabric()
     try:
         try:
-            print("Fabric v. %s." % __version__)
+            print("Fabric v. %s." % version)
             fab.load_default_settings()
             core_plugin_decs.plugin_main(fab)
             core_plugin_ops.plugin_main(fab)

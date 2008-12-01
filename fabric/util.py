@@ -22,6 +22,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 """
 
 import re
+import sys
+
+version = '0.0.9'
+author = 'See AUTHORS file'
+author_email = 'fab-user <fab-user@nongnu.org>'
+url = 'http://www.nongnu.org/fab/'
+license = 'GPL-2'
+about = '''\
+   Fabric v. %(fab_version)s, Copyright (C) 2008 %(fab_author)s.
+   Fabric comes with ABSOLUTELY NO WARRANTY.
+   This is free software, and you are welcome to redistribute it
+   under certain conditions. Please reference full license for details.
+'''
 
 _LAZY_FORMAT_SUBSTITUTER = re.compile(r'(\\?)(\$\((?P<var>[\w-]+?)\))')
 
