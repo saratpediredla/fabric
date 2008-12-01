@@ -318,9 +318,10 @@ class Fabric(object):
         # Setup
         command = self.commands[cmd]
         if args is not None:
-            args = map(lazy_format, args)
+            args = map(lambda a: lazy_format(a, self.env), args)
         if kwargs is not None:
-            kwargs = dict(zip(kwargs.keys(), map(lazy_format, kwargs.values())))
+            kwargs = dict(zip(kwargs.keys(), map(
+                lambda v: lazy_format(v, self.env), kwargs.values())))
         # Remember executed commands. Don't run them again if skip_executed.
         if skip_executed and _has_executed(command, args, kwargs):
             args_msg = (args or kwargs) and (" with %r, %r" % (args, kwargs)) or ""
