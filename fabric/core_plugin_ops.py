@@ -9,6 +9,16 @@ Copyright (c) 2008 Unwire. All rights reserved.
 
 from util import *
 
+class RegexpValidator(object):
+    def __init__(self, pattern):
+        self.regexp = re.compile(pattern)
+    def __call__(self, value):
+        regexp = self.regexp
+        if value is None or not regexp.match(value):
+            raise ValueError("Malformed value %r. Must match r'%s'." %
+                    (value, regexp.pattern))
+        return value
+
 def plugin_main(fab):
     @fab.operation
     def require(*varnames, **kwargs):

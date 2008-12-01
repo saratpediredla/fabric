@@ -437,16 +437,6 @@ def _run_serially(fn, *args, **kwargs):
             result = res
     return result
 
-class RegexpValidator(object):
-    def __init__(self, pattern):
-        self.regexp = re.compile(pattern)
-    def __call__(self, value):
-        regexp = self.regexp
-        if value is None or not regexp.match(value):
-            raise ValueError("Malformed value %r. Must match r'%s'." %
-                    (value, regexp.pattern))
-        return value
-
 def _check_fab_hosts():
     "Check that we have a fab_hosts variable, and prompt if it's missing."
     if not ENV.get('fab_local_hosts'):
