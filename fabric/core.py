@@ -322,12 +322,12 @@ class Fabric(object):
         if kwargs is not None:
             kwargs = dict(zip(kwargs.keys(), map(
                 lambda v: lazy_format(v, self.env), kwargs.values())))
-        # Remember executed commands. Don't run them again if skip_executed.
-        if skip_executed and _has_executed(command, args, kwargs):
+        # Don't run remembered invokations again if skip_executed.
+        if skip_executed and self.has_executed(command, args, kwargs):
             args_msg = (args or kwargs) and (" with %r, %r" % (args, kwargs)) or ""
             print("Skipping %s (already invoked%s)." % (cmd, args_msg))
             return
-        _remember_executed(command, args, kwargs)
+        self.remember_executed(command, args, kwargs)
         # Invoke eventual chained calls prior to the command.
         if self.env.get('fab_cur_command'):
             print("Chaining %s..." % cmd)
@@ -345,7 +345,13 @@ class Fabric(object):
         _execute_at_target(command, args, kwargs)
         # Done
         self.env['fab_cur_command'] = None
-
+    def has_executed(self, command, args, kwargs):
+        return (command, args_hash(args, kwargs)) in self.executed_commands
+    def remember_executed(self, command, args, kwargs):
+        try:
+            self.executed_commands.add((command, args_hash(args, kwargs)))
+        except TypeError:
+            print "Warning: could not remember execution (unhashable arguments)."
 
 #
 # Per-operation execution strategies for "broad" mode.
@@ -535,19 +541,8 @@ def parse_args(args):
         cmds.append((cmd, cmd_args, cmd_kwargs))
     return cmds
 
-def _has_executed(command, args, kwargs):
-    return (command, _args_hash(args, kwargs)) in _EXECUTED_COMMANDS
 
-def _remember_executed(command, args, kwargs):
-    try:
-        _EXECUTED_COMMANDS.add((command, _args_hash(args, kwargs)))
-    except TypeError:
-        print "Warning: could not remember execution (unhashable arguments)."
 
-def _args_hash(args, kwargs):
-    if not args or kwargs:
-        return None
-    return hash(tuple(sorted(args + kwargs.items())))
 
 def _execute_at_target(command, args, kwargs):
     mode = ENV['fab_local_mode'] = getattr(command, 'mode', ENV['fab_mode'])

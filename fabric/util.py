@@ -74,5 +74,8 @@ def confirm_proceed(exec_type, host, kwargs, env):
         return answer and answer in 'yY'
     return True
 
-
+def args_hash(args, kwargs):
+    if not args or kwargs:
+        return None
+    return hash(tuple(sorted(args + kwargs.items())))
 
