@@ -342,7 +342,7 @@ class Fabric(object):
                 print("Back in %s..." % cmd)
                 self.env['fab_cur_command'] = cmd
         # Determine target host and execute command.
-        _execute_at_target(command, args, kwargs)
+        self.execute_at_target(command, args, kwargs)
         # Done
         self.env['fab_cur_command'] = None
     def has_executed(self, command, args, kwargs):
@@ -352,6 +352,43 @@ class Fabric(object):
             self.executed_commands.add((command, args_hash(args, kwargs)))
         except TypeError:
             print "Warning: could not remember execution (unhashable arguments)."
+    def execute_at_target(self, command, args, kwargs):
+        mode = self.env['fab_local_mode'] = getattr(command, 'mode',
+            self.env['fab_mode'])
+        hosts = self.env['fab_local_hosts'] = set(getattr(
+            command, 'hosts', self.env.get('fab_hosts') or []))
+        roles = getattr(command, 'roles', [])
+        for role in roles:
+            role = lazy_format(role, self.env)
+            role_hosts = self.env.get(role)
+            map(hosts.add, role_hosts)
+        if mode in ('rolling', 'fanout'):
+            print("Warning: The 'rolling' and 'fanout' fab_modes are " +
+                  "deprecated.\n   Use 'broad' and 'deep' instead.")
+            mode = self.env['fab_local_mode'] = 'broad'
+        # Run command once, with each operation running once per host.
+        if mode == 'broad':
+            command(*args, **kwargs)
+        # Run entire command once per host.
+        elif mode == 'deep':
+            # Determine whether we need to connect for this command, do so if so
+            if _needs_connect(command):
+                _check_fab_hosts()
+                _connect()
+            # Gracefully handle local-only commands
+            if self.connections:
+                for host_conn in self.connections:
+                    ENV['fab_host_conn'] = host_conn
+                    ENV['fab_host'] = host_conn.host_local_env['fab_host']
+                    command(*args, **kwargs)
+            else:
+                command(*args, **kwargs)
+        else:
+            fail({'fail':'abort'}, "Unknown fab_mode: '$(fab_mode)'", self.env)
+        # Disconnect (to clear things up for next command)
+        # TODO: be intelligent, persist connections for hosts
+        # that will be used again this session.
+        _disconnect()
 
 #
 # Per-operation execution strategies for "broad" mode.
@@ -410,7 +447,6 @@ class RegexpValidator(object):
                     (value, regexp.pattern))
         return value
 
-
 def _check_fab_hosts():
     "Check that we have a fab_hosts variable, and prompt if it's missing."
     if not ENV.get('fab_local_hosts'):
@@ -419,7 +455,6 @@ def _check_fab_hosts():
         hosts = ENV['fab_input_hosts']
         hosts = [x.strip() for x in hosts.split(',')]
         ENV['fab_local_hosts'] = hosts
-    
 
 def _try_run_operation(fn, host, client, env, *args, **kwargs):
     """
@@ -540,46 +575,6 @@ def parse_args(args):
                     cmd_args.append(k)
         cmds.append((cmd, cmd_args, cmd_kwargs))
     return cmds
-
-
-
-
-def _execute_at_target(command, args, kwargs):
-    mode = ENV['fab_local_mode'] = getattr(command, 'mode', ENV['fab_mode'])
-    hosts = ENV['fab_local_hosts'] = set(getattr(
-        command, 'hosts', ENV.get('fab_hosts') or []))
-    roles = getattr(command, 'roles', [])
-    for role in roles:
-        role = lazy_format(role, ENV)
-        role_hosts = ENV.get(role)
-        map(hosts.add, role_hosts)
-    if mode in ('rolling', 'fanout'):
-        print("Warning: The 'rolling' and 'fanout' fab_modes are " +
-              "deprecated.\n   Use 'broad' and 'deep' instead.")
-        mode = ENV['fab_local_mode'] = 'broad'
-    # Run command once, with each operation running once per host.
-    if mode == 'broad':
-        command(*args, **kwargs)
-    # Run entire command once per host.
-    elif mode == 'deep':
-        # Determine whether we need to connect for this command, do so if so
-        if _needs_connect(command):
-            _check_fab_hosts()
-            _connect()
-        # Gracefully handle local-only commands
-        if CONNECTIONS:
-            for host_conn in CONNECTIONS:
-                ENV['fab_host_conn'] = host_conn
-                ENV['fab_host'] = host_conn.host_local_env['fab_host']
-                command(*args, **kwargs)
-        else:
-            command(*args, **kwargs)
-    else:
-        fail({'fail':'abort'}, "Unknown fab_mode: '$(fab_mode)'", ENV)
-    # Disconnect (to clear things up for next command)
-    # TODO: be intelligent, persist connections for hosts
-    # that will be used again this session.
-    _disconnect()
 
 def _needs_connect(command):
     for operation in command.func_code.co_names:
