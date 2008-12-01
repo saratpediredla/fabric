@@ -39,7 +39,7 @@ about = '''\
 _LAZY_FORMAT_SUBSTITUTER = re.compile(r'(\\?)(\$\((?P<var>[\w-]+?)\))')
 
 def lazy_format(string, env):
-    "Do recursive string substitution of ENV vars - both lazy and eager."
+    "Do recursive string substitution of env vars - both lazy and eager."
     if string is None:
         return None
     env = dict([(k, str(v)) for k, v in env.items()])
@@ -50,7 +50,7 @@ def lazy_format(string, env):
             return match.group(2)
         var = match.group('var')
         if var in env:
-            return escape + _lazy_format(env[var] % env, env)
+            return escape + lazy_format(env[var] % env, env)
         else:
             return match.group(0)
     return re.sub(_LAZY_FORMAT_SUBSTITUTER, replacer_fn, string % env)
