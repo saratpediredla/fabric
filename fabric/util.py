@@ -21,10 +21,25 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+import re
+import sys
+
+version = '0.0.9'
+author = 'See AUTHORS file'
+author_email = 'fab-user <fab-user@nongnu.org>'
+url = 'http://www.nongnu.org/fab/'
+license = 'GPL-2'
+about = '''\
+   Fabric v. %(fab_version)s, Copyright (C) 2008 %(fab_author)s.
+   Fabric comes with ABSOLUTELY NO WARRANTY.
+   This is free software, and you are welcome to redistribute it
+   under certain conditions. Please reference full license for details.
+'''
+
 _LAZY_FORMAT_SUBSTITUTER = re.compile(r'(\\?)(\$\((?P<var>[\w-]+?)\))')
 
 def lazy_format(string, env):
-    "Do recursive string substitution of ENV vars - both lazy and eager."
+    "Do recursive string substitution of env vars - both lazy and eager."
     if string is None:
         return None
     env = dict([(k, str(v)) for k, v in env.items()])
@@ -35,7 +50,7 @@ def lazy_format(string, env):
             return match.group(2)
         var = match.group('var')
         if var in env:
-            return escape + _lazy_format(env[var] % env, env)
+            return escape + lazy_format(env[var] % env, env)
         else:
             return match.group(0)
     return re.sub(_LAZY_FORMAT_SUBSTITUTER, replacer_fn, string % env)
@@ -72,5 +87,8 @@ def confirm_proceed(exec_type, host, kwargs, env):
         return answer and answer in 'yY'
     return True
 
-
+def args_hash(args, kwargs):
+    if not args or kwargs:
+        return None
+    return hash(tuple(sorted(args + kwargs.items())))
 
