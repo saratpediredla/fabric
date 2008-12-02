@@ -7,8 +7,21 @@ Created by Christian Vest Hansen on 2008-12-02.
 Copyright (c) 2008 Unwire. All rights reserved.
 """
 
-import sys
+import getpass
 import os
+import socket
+import sys
+import threading
+
+from util import *
+
+# Paramiko
+try:
+    import paramiko as ssh
+except ImportError:
+    print("Error: paramiko is a required module. Please install it:")
+    print("  $ sudo easy_install paramiko")
+    sys.exit(1)
 
 
 class HostConnection(object):
@@ -154,7 +167,6 @@ def start_outputter(prefix, chan, env, stderr=False, capture=None):
                 # If no line breaks, just keep adding to leftovers
                 else:
                     leftovers += out
-
     thread = threading.Thread(None, outputter, prefix,
         (prefix, chan, env, stderr, capture))
     thread.setDaemon(True)

@@ -7,6 +7,7 @@ Created by Christian Vest Hansen on 2008-11-30.
 Copyright (c) 2008 Unwire. All rights reserved.
 """
 
+from netio import start_outputter
 from util import *
 
 class RegexpValidator(object):
@@ -232,8 +233,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = _start_outputter("[%s] out" % host, chan, env, capture=capture)
-        err_th = _start_outputter("[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter("[%s] out" % host, chan, env, capture=capture)
+        err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
 
@@ -284,8 +285,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = _start_outputter("[%s] out" % host, chan, env, capture=capture)
-        err_th = _start_outputter("[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter("[%s] out" % host, chan, env, capture=capture)
+        err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
 

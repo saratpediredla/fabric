@@ -18,16 +18,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import datetime
-import getpass
 import os
 import os.path
 import re
 import readline
 import signal
-import socket
 import subprocess
 import sys
-import threading
 import time
 import types
 from collections import deque
@@ -39,14 +36,6 @@ import core_plugin_cmds
 from interop import get_username, partition, get_home_directory
 from util import *
 from netio import HostConnection
-
-# Paramiko
-try:
-    import paramiko as ssh
-except ImportError:
-    print("Error: paramiko is a required module. Please install it:")
-    print("  $ sudo easy_install paramiko")
-    sys.exit(1)
 
 DEFAULT_ENV = {
     'fab_version': version,
@@ -130,10 +119,10 @@ class Fabric(object):
             if self.env['fab_local_mode'] == 'broad':
                 # If serial, run on each host in order
                 if self.env['fab_submode'] == 'serial':
-                    return _run_serially(op_fn, *args, **kwargs)
+                    return _run_serially(self, op_fn, *args, **kwargs)
                 # If parallel, create per-host threads
                 elif self.env['fab_submode'] == 'parallel':
-                    return _run_parallel(op_fn, *args, **kwargs)
+                    return _run_parallel(self, op_fn, *args, **kwargs)
             # If deep, no need to multiplex here, just run for the current host
             # (set farther up the stack)
             elif self.env['fab_local_mode'] == 'deep':
@@ -211,7 +200,7 @@ class Fabric(object):
                 host_connections_by_user[user].append(conn)
         # Print and establish connections
         for user, host_connections in host_connections_by_user.iteritems():
-            user_env = dict(ENV)
+            user_env = dict(self.env)
             user_env.update(user_envs[user])
             print(lazy_format(
                 "Logging into the following hosts as $(fab_user):", user_env))
@@ -300,6 +289,14 @@ class Fabric(object):
         # TODO: be intelligent, persist connections for hosts
         # that will be used again this session.
         self.disconnect()
+    def check_hosts(self):
+        "Check that we have a fab_hosts variable, and prompt if it's missing."
+        if not self.env.get('fab_local_hosts'):
+            prompt('fab_input_hosts',
+                'Please specify host or hosts to connect to (comma-separated)')
+            hosts = self.env['fab_input_hosts']
+            hosts = [x.strip() for x in hosts.split(',')]
+            self.env['fab_local_hosts'] = hosts
 
 def _retrofit_args(args, kwargs, command):
     not_enough_positionals = len(args) > command.func_code.co_argcount
@@ -323,7 +320,7 @@ def _retrofit_args(args, kwargs, command):
 #
 # Per-operation execution strategies for "broad" mode.
 #
-def _run_parallel(fn, *args, **kwargs):
+def _run_parallel(fab, fn, *args, **kwargs):
     """
     A strategy that executes on all hosts in parallel.
     
@@ -332,10 +329,10 @@ def _run_parallel(fn, *args, **kwargs):
     """
     err_msg = "The $(fab_current_operation) operation failed on $(fab_host)"
     threads = []
-    if not CONNECTIONS:
-        _check_fab_hosts()
-        _connect()
-    for host_conn in CONNECTIONS:
+    if not fab.connections:
+        fab.check_hosts()
+        fab.connect()
+    for host_conn in fab.connections:
         env = host_conn.get_env()
         env['fab_current_operation'] = fn.__name__
         host = env['fab_host']
@@ -348,16 +345,16 @@ def _run_parallel(fn, *args, **kwargs):
     map(threading.Thread.start, threads)
     map(threading.Thread.join, threads)
 
-def _run_serially(fn, *args, **kwargs):
+def _run_serially(fab, fn, *args, **kwargs):
     """One-at-a-time fail-fast strategy."""
     err_msg = "The $(fab_current_operation) operation failed on $(fab_host)"
     # Capture the first output in case someone really wants captured output
     # while running in broad mode.
     result = None
-    if not CONNECTIONS:
-        _check_fab_hosts()
-        _connect()
-    for host_conn in CONNECTIONS:
+    if not fab.connections:
+        fab.check_hosts()
+        fab.connect()
+    for host_conn in fab.connections:
         env = host_conn.get_env()
         env['fab_current_operation'] = fn.__name__
         host = env['fab_host']
@@ -366,15 +363,6 @@ def _run_serially(fn, *args, **kwargs):
         if not result:
             result = res
     return result
-
-def _check_fab_hosts():
-    "Check that we have a fab_hosts variable, and prompt if it's missing."
-    if not ENV.get('fab_local_hosts'):
-        prompt('fab_input_hosts',
-            'Please specify host or hosts to connect to (comma-separated)')
-        hosts = ENV['fab_input_hosts']
-        hosts = [x.strip() for x in hosts.split(',')]
-        ENV['fab_local_hosts'] = hosts
 
 def _try_run_operation(fn, host, client, env, *args, **kwargs):
     """
