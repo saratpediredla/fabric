@@ -173,6 +173,7 @@ class Fabric(object):
                     sys.exit(1)
     def disconnect(self):
         map(HostConnection.disconnect, self.connections)
+        self.connections = []
     def connect(self):
         """Populate Fabric.connections with HostConnection instances as per
         current fab_local_hosts."""
