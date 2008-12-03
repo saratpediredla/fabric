@@ -273,7 +273,7 @@ class Fabric(object):
         elif mode == 'deep':
             # Determine whether we need to connect for this command, do so if so
             if _needs_connect(command, self.commands, self.operations):
-                _check_fab_hosts()
+                self.check_hosts()
                 self.connect()
             # Gracefully handle local-only commands
             if self.connections:
