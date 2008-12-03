@@ -104,8 +104,8 @@ class HostConnection(object):
     def __str__(self):
         return self.host_local_env['fab_host']
 
-def start_outputter(fab, prefix, chan, env, stderr=False, capture=None):
-    def outputter(prefix, chan, env, stderr, capture):
+def start_outputter(prefix, chan, local_env, global_env, stderr=False, capture=None):
+    def outputter(prefix, chan, local_env, global_env, stderr, capture):
         # Read one "packet" at a time, which lets us get less-than-a-line
         # chunks of text, such as sudo prompts. However, we still print
         # them to the user one line at a time. (We also eat sudo prompts.)
@@ -122,8 +122,8 @@ def start_outputter(fab, prefix, chan, env, stderr=False, capture=None):
                     capture += out
 
                 # Handle any password prompts
-                initial_prompt = re.findall(r'^%s$' % env['fab_sudo_prompt'],
-                    out, re.I|re.M)
+                initial_prompt = re.findall(
+                    r'^%s$' % local_env['fab_sudo_prompt'], out, re.I|re.M)
                 again_prompt = re.findall(r'^Sorry, try again', out, re.I|re.M)
                 if initial_prompt or again_prompt:
                     # First, get or prompt for password
@@ -132,22 +132,22 @@ def start_outputter(fab, prefix, chan, env, stderr=False, capture=None):
                     old_password = env.get('fab_password')
                     if old_password:
                         # Just set up prompt in case we're at an again prompt
-                        env['fab_passprompt_suffix'] = " [Enter for previous]: "
+                        local_env['fab_passprompt_suffix'] = " [Enter for previous]: "
                     else:
                         # Set prompt, then ask for a password
-                        env['fab_passprompt_suffix'] = ": "
+                        local_env['fab_passprompt_suffix'] = ": "
                         # Get pass, and make sure we communicate it back to the
                         # fab.env since that was obviously empty.
-                        fab.env['fab_password'] = env['fab_password'] = \
-                            getpass.getpass(lazy_format(PASS_PROMPT, env))
+                        global_env['fab_password'] = local_env['fab_password'] = \
+                            getpass.getpass(lazy_format(PASS_PROMPT, local_env))
                     # Re-prompt -- whatever we supplied last time (the
                     # current value of env['fab_password']) was incorrect.
                     # Don't overwrite fab.env because it might not be empty.
                     if again_prompt:
-                        env['fab_password'] = \
-                            getpass.getpass(lazy_format(PASS_PROMPT, env))
+                        local_env['fab_password'] = \
+                            getpass.getpass(lazy_format(PASS_PROMPT, local_env))
                     # Either way, we have a password now, so send it.
-                    chan.sendall(env['fab_password']+'\n')
+                    chan.sendall(local_env['fab_password']+'\n')
                     out = ""
 
                 # Deal with line breaks, printing all lines and storing the
@@ -157,7 +157,7 @@ def start_outputter(fab, prefix, chan, env, stderr=False, capture=None):
                     line = leftovers + parts.pop(0)
                     leftovers = parts.pop()
                     while parts or line:
-                        if not env['fab_quiet']:
+                        if not local_env['fab_quiet']:
                             sys.stdout.write("%s: %s\n" % (prefix, line)),
                             sys.stdout.flush()
                         if parts:
@@ -168,7 +168,7 @@ def start_outputter(fab, prefix, chan, env, stderr=False, capture=None):
                 else:
                     leftovers += out
     thread = threading.Thread(None, outputter, prefix,
-        (prefix, chan, env, stderr, capture))
+        (prefix, chan, local_env, global_env, stderr, capture))
     thread.setDaemon(True)
     thread.start()
     return thread

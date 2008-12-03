@@ -235,8 +235,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = start_outputter(fab, "[%s] out" % host, chan, env, capture=capture)
-        err_th = start_outputter(fab, "[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter("[%s] out" % host, chan, env, fab.env, capture=capture)
+        err_th = start_outputter("[%s] err" % host, chan, env, fab.env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
 
