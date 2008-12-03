@@ -239,7 +239,10 @@ def plugin_main(fab):
         err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
-
+        
+        out_th.join()
+        err_th.join()
+        
         return ("".join(capture).strip(), status == 0)
 
     @fab.operation
@@ -291,6 +294,9 @@ def plugin_main(fab):
         err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
+        
+        out_th.join()
+        err_th.join()
 
         return ("".join(capture).strip(), status == 0)
 

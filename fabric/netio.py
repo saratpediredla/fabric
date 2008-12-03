@@ -116,6 +116,9 @@ def start_outputter(prefix, chan, env, stderr=False, capture=None):
                 out = chan.recv(65535)
             else:
                 out = chan.recv_stderr(65535)
+            if out == "":
+                # then the channel is closed
+                return
             if out is not None:
                 # Capture if necessary
                 if capture is not None:
