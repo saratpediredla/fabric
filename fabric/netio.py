@@ -81,6 +81,8 @@ class HostConnection(object):
                     sys.exit(0)
             self.host_local_env['fab_password'] = password
             self.user_local_env['fab_password'] = password
+            if not self.global_env.get('fab_password', False):
+                self.global_env['fab_password'] = password
         self.client = client
     def disconnect(self):
         if self.client:
