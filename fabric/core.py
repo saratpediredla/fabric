@@ -194,7 +194,7 @@ class Fabric(object):
             port = int(port or def_port)
             if user is not '' and user not in user_envs:
                 user_envs[user] = {'fab_user': user}
-            conn = HostConnection(hostname, port, self.env, user_envs[user])
+            conn = HostConnection(self, hostname, port, user_envs[user])
             if user not in host_connections_by_user:
                 host_connections_by_user[user] = [conn]
             else:

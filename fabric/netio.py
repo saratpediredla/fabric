@@ -30,8 +30,8 @@ class HostConnection(object):
     
     Instances of this class populate the Fabric.connections list.
     """
-    def __init__(self, hostname, port, global_env, user_local_env):
-        self.global_env = global_env
+    def __init__(self, fab, hostname, port, user_local_env):
+        self.fab = fab
         self.user_local_env = user_local_env
         self.host_local_env = {
             'fab_host': hostname,
@@ -44,7 +44,7 @@ class HostConnection(object):
         return hash(tuple(sorted(self.host_local_env.items())))
     def get_env(self):
         "Create a new environment that is the union of local and global envs."
-        env = dict(self.global_env)
+        env = dict(self.fab.env)
         env.update(self.user_local_env)
         env.update(self.host_local_env)
         return env
@@ -104,7 +104,7 @@ class HostConnection(object):
     def __str__(self):
         return self.host_local_env['fab_host']
 
-def start_outputter(prefix, chan, env, stderr=False, capture=None):
+def start_outputter(fab, prefix, chan, env, stderr=False, capture=None):
     def outputter(prefix, chan, env, stderr, capture):
         # Read one "packet" at a time, which lets us get less-than-a-line
         # chunks of text, such as sudo prompts. However, we still print
@@ -137,12 +137,12 @@ def start_outputter(prefix, chan, env, stderr=False, capture=None):
                         # Set prompt, then ask for a password
                         env['fab_passprompt_suffix'] = ": "
                         # Get pass, and make sure we communicate it back to the
-                        # global ENV since that was obviously empty.
-                        ENV['fab_password'] = env['fab_password'] = \
+                        # fab.env since that was obviously empty.
+                        fab.env['fab_password'] = env['fab_password'] = \
                             getpass.getpass(lazy_format(PASS_PROMPT, env))
                     # Re-prompt -- whatever we supplied last time (the
                     # current value of env['fab_password']) was incorrect.
-                    # Don't overwrite ENV because it might not be empty.
+                    # Don't overwrite fab.env because it might not be empty.
                     if again_prompt:
                         env['fab_password'] = \
                             getpass.getpass(lazy_format(PASS_PROMPT, env))

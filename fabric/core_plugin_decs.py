@@ -8,6 +8,7 @@ Copyright (c) 2008 Unwire. All rights reserved.
 """
 
 from util import *
+from collections import deque
 
 def _new_call_chain_decorator(operation, *op_args, **op_kwargs):
     if getattr(operation, 'connects', False):

@@ -7,6 +7,8 @@ Created by Christian Vest Hansen on 2008-11-30.
 Copyright (c) 2008 Unwire. All rights reserved.
 """
 
+import os
+import subprocess
 from netio import start_outputter
 from util import *
 
@@ -52,7 +54,7 @@ def plugin_main(fab):
             require('project_name', 'install_dir', provided_by=[stg, prod])
 
         """
-        if all([var in ENV for var in varnames]):
+        if all([var in fab.env for var in varnames]):
             return
         if len(varnames) == 1:
             vars_msg = "a %r variable." % varnames[0]
@@ -233,8 +235,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = start_outputter("[%s] out" % host, chan, env, capture=capture)
-        err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter(fab, "[%s] out" % host, chan, env, capture=capture)
+        err_th = start_outputter(fab, "[%s] err" % host, chan, env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
 
@@ -285,8 +287,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = start_outputter("[%s] out" % host, chan, env, capture=capture)
-        err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter(fab, "[%s] out" % host, chan, env, capture=capture)
+        err_th = start_outputter(fab, "[%s] err" % host, chan, env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
 
@@ -431,6 +433,6 @@ def plugin_main(fab):
                 cmd, args, kwargs = item, [], {}
             if isinstance(cmd, basestring):
                 cmd = fab.commands[item]
-            _execute_command(cmd.__name__, args, kwargs, skip_executed=True)
+            fab.execute_command(cmd.__name__, args, kwargs, skip_executed=True)
 
 
