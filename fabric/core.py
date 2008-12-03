@@ -176,7 +176,7 @@ class Fabric(object):
     def connect(self):
         """Populate Fabric.connections with HostConnection instances as per
         current fab_local_hosts."""
-        signal.signal(signal.SIGINT, lambda: _disconnect() and sys.exit(0))
+        signal.signal(signal.SIGINT, lambda: self.disconnect() and sys.exit(0))
         def_port = self.env['fab_port']
         username = self.env['fab_user']
         fab_hosts = self.env['fab_local_hosts']
