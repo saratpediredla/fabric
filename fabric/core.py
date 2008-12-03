@@ -272,7 +272,7 @@ class Fabric(object):
         # Run entire command once per host.
         elif mode == 'deep':
             # Determine whether we need to connect for this command, do so if so
-            if _needs_connect(command):
+            if _needs_connect(command, self.commands, self.operations):
                 _check_fab_hosts()
                 self.connect()
             # Gracefully handle local-only commands
@@ -414,10 +414,20 @@ def parse_args(args, env={}):
         cmds.append((cmd, cmd_args, cmd_kwargs))
     return cmds
 
-def _needs_connect(command):
-    for operation in command.func_code.co_names:
-        if getattr(OPERATIONS.get(operation), 'connects', False):
-            return True
+def _needs_connect(command, commands, operations):
+    checked = set()
+    def is_connecting(cmd):
+        for fn in cmd.func_code.co_names:
+            if fn not in cheched:
+                checked.add(fn)
+                if fn in commands and is_connecting(fn):
+                    return True
+                elif fn in operations:
+                    op = operations[fn]
+                    if getattr(op, 'connects', False):
+                        return True
+        return False
+    return is_connecting(command)
 
 def main():
     args = sys.argv[1:]
