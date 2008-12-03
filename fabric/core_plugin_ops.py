@@ -8,6 +8,7 @@ Copyright (c) 2008 Unwire. All rights reserved.
 """
 
 import os
+import subprocess
 
 from netio import start_outputter
 from util import *
@@ -54,7 +55,7 @@ def plugin_main(fab):
             require('project_name', 'install_dir', provided_by=[stg, prod])
 
         """
-        if all([var in ENV for var in varnames]):
+        if all([var in fab.env for var in varnames]):
             return
         if len(varnames) == 1:
             vars_msg = "a %r variable." % varnames[0]
@@ -82,7 +83,7 @@ def plugin_main(fab):
         it doesn't validate, see below.)
     
         The `validate` parameter is a callable that raises an exception on invalid
-        inputs and returns the input for storage in `ENV`.
+        inputs and returns the input for storage in `config`.
     
         It may process the input and convert it to a different type, as in the
         second example below.
@@ -235,8 +236,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = start_outputter("[%s] out" % host, chan, env, capture=capture)
-        err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter("[%s] out" % host, chan, env, fab.env, capture=capture)
+        err_th = start_outputter("[%s] err" % host, chan, env, fab.env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
         
@@ -290,8 +291,8 @@ def plugin_main(fab):
         chan.exec_command(real_cmd)
         capture = []
 
-        out_th = start_outputter("[%s] out" % host, chan, env, capture=capture)
-        err_th = start_outputter("[%s] err" % host, chan, env, stderr=True)
+        out_th = start_outputter("[%s] out" % host, chan, env, fab.env, capture=capture)
+        err_th = start_outputter("[%s] err" % host, chan, env, fab.env, stderr=True)
         status = chan.recv_exit_status()
         chan.close()
         
@@ -439,6 +440,6 @@ def plugin_main(fab):
                 cmd, args, kwargs = item, [], {}
             if isinstance(cmd, basestring):
                 cmd = fab.commands[item]
-            _execute_command(cmd.__name__, args, kwargs, skip_executed=True)
+            fab.execute_command(cmd.__name__, args, kwargs, skip_executed=True)
 
 
