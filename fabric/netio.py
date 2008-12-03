@@ -30,8 +30,8 @@ class HostConnection(object):
     
     Instances of this class populate the Fabric.connections list.
     """
-    def __init__(self, fab, hostname, port, user_local_env):
-        self.fab = fab
+    def __init__(self, hostname, port, user_local_env, global_env):
+        self.global_env = global_env
         self.user_local_env = user_local_env
         self.host_local_env = {
             'fab_host': hostname,
@@ -44,7 +44,7 @@ class HostConnection(object):
         return hash(tuple(sorted(self.host_local_env.items())))
     def get_env(self):
         "Create a new environment that is the union of local and global envs."
-        env = dict(self.fab.env)
+        env = dict(self.global_env)
         env.update(self.user_local_env)
         env.update(self.host_local_env)
         return env
