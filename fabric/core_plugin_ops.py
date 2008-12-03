@@ -7,6 +7,8 @@ Created by Christian Vest Hansen on 2008-11-30.
 Copyright (c) 2008 Unwire. All rights reserved.
 """
 
+import os
+
 from netio import start_outputter
 from util import *
 
