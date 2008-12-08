@@ -134,7 +134,7 @@ def start_outputter(prefix, chan, local_env, global_env, stderr=False, capture=N
                     # First, get or prompt for password
                     PASS_PROMPT = ("Password for $(fab_user)@" +
                         "$(fab_host)$(fab_passprompt_suffix)")
-                    old_password = env.get('fab_password')
+                    old_password = local_env.get('fab_password')
                     if old_password:
                         # Just set up prompt in case we're at an again prompt
                         local_env['fab_passprompt_suffix'] = " [Enter for previous]: "

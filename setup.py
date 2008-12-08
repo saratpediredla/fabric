@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name = 'Fabric',
-    version = '0.0.9',
+    version = '0.1.0',
     description = 'Fabric is a simple pythonic remote deployment tool.',
     long_description = """
 It is designed to upload files to, and run shell commands on, a number of
@@ -20,7 +20,7 @@ bound to any specific framework.
     author = 'Christian Vest Hansen',
     author_email = 'karmazilla@gmail.com',
     url = 'http://www.nongnu.org/fab/',
-    install_requires = ['paramiko >=1.6, <2.0'],
+    install_requires = ['paramiko >=1.7, <2.0'],
     packages = ['fabric'],
     entry_points = {
         'console_scripts': [
