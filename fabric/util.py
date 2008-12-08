@@ -24,7 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 import re
 import sys
 
-version = '0.0.9'
+version = '0.1.0'
 author = 'See AUTHORS file'
 author_email = 'fab-user <fab-user@nongnu.org>'
 url = 'http://www.nongnu.org/fab/'
