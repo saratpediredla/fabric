@@ -20,7 +20,7 @@ bound to any specific framework.
     author = 'Christian Vest Hansen',
     author_email = 'karmazilla@gmail.com',
     url = 'http://www.nongnu.org/fab/',
-    install_requires = ['paramiko >=1.6, <2.0'],
+    install_requires = ['paramiko >=1.7, <2.0'],
     packages = ['fabric'],
     entry_points = {
         'console_scripts': [
