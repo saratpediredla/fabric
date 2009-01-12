@@ -418,7 +418,7 @@ def _needs_connect(command, commands, operations):
     checked = set()
     def is_connecting(cmd):
         for fn in cmd.func_code.co_names:
-            if fn not in cheched:
+            if fn not in checked:
                 checked.add(fn)
                 if fn in commands and is_connecting(fn):
                     return True
